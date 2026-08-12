@@ -7,11 +7,17 @@
     --paper: #fdfbf5;
     --paper-dark: #f5f0e1;
     --border: #d4c5a0;
+    --dynasty-xianqin: #46593c;
+    --dynasty-han: #5a7a3a;
+    --dynasty-wei: #6b4f3a;
+    --dynasty-jin: #4a6a5a;
+    --dynasty-nanbeichao: #5a7a4a;
     --dynasty-tang: #b85450;
     --dynasty-song: #4a7c8c;
-    --dynasty-han: #5a7a3a;
+    --dynasty-yuan: #3a4f7a;
     --dynasty-ming: #7a6c9d;
     --dynasty-qing: #5c8a5a;
+    --dynasty-modern: #2d6b50;
     --recite-bg: #f0ede4;
     --recite-accent: #6b5b3a;
   }
@@ -213,11 +219,17 @@
     font-size: 0.8rem;
     margin-right: 6px;
   }
+  .dynasty-tag.xianqin { background: rgba(70, 89, 60, 0.12); color: var(--dynasty-xianqin); }
+  .dynasty-tag.han { background: rgba(90, 122, 58, 0.12); color: var(--dynasty-han); }
+  .dynasty-tag.wei { background: rgba(107, 79, 58, 0.12); color: var(--dynasty-wei); }
+  .dynasty-tag.jin { background: rgba(74, 106, 90, 0.12); color: var(--dynasty-jin); }
+  .dynasty-tag.nanbeichao { background: rgba(90, 122, 74, 0.12); color: var(--dynasty-nanbeichao); }
   .dynasty-tag.tang { background: rgba(184, 84, 80, 0.12); color: var(--dynasty-tang); }
   .dynasty-tag.song { background: rgba(74, 124, 140, 0.12); color: var(--dynasty-song); }
-  .dynasty-tag.han { background: rgba(90, 122, 58, 0.12); color: var(--dynasty-han); }
+  .dynasty-tag.yuan { background: rgba(58, 79, 122, 0.12); color: var(--dynasty-yuan); }
   .dynasty-tag.ming { background: rgba(122, 108, 157, 0.12); color: var(--dynasty-ming); }
   .dynasty-tag.qing { background: rgba(92, 138, 90, 0.12); color: var(--dynasty-qing); }
+  .dynasty-tag.modern { background: rgba(45, 107, 80, 0.12); color: var(--dynasty-modern); }
   .poem-body {
     font-size: 1.25rem;
     line-height: 2.4;
@@ -226,6 +238,12 @@
     letter-spacing: 0.1em;
   }
   .poem-body p { margin-bottom: 2px; }
+  .poem-body .preface {
+    font-size: 0.95rem;
+    color: var(--ink-light);
+    margin-bottom: 12px;
+    line-height: 1.9;
+  }
   /* 拼音仅叠加注音；显示时略增行高，并拉开字距避免长音节挤在一起 */
   body:not(.hide-pinyin) .poem-body.with-pinyin {
     line-height: 2.55;

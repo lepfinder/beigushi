@@ -9,7 +9,7 @@ export interface GradePage {
   label: string;
 }
 
-/** 小学一至六年级（上/下册）静态页面 */
+/** 小学一至六年级、初中七至九年级（上/下册）静态页面 */
 export const GRADE_PAGES: GradePage[] = [
   { slug: '一年级上册', file: '一年级上册古诗词.html', shortLabel: '一上', label: '一年级上册' },
   { slug: '一年级下册', file: '一年级下册古诗词.html', shortLabel: '一下', label: '一年级下册' },
@@ -23,6 +23,12 @@ export const GRADE_PAGES: GradePage[] = [
   { slug: '五年级下册', file: '五年级下册古诗词.html', shortLabel: '五下', label: '五年级下册' },
   { slug: '六年级上册', file: '六年级上册古诗词.html', shortLabel: '六上', label: '六年级上册' },
   { slug: '六年级下册', file: '六年级下册古诗词.html', shortLabel: '六下', label: '六年级下册' },
+  { slug: '七年级上册', file: '七年级上册古诗词.html', shortLabel: '七上', label: '七年级上册' },
+  { slug: '七年级下册', file: '七年级下册古诗词.html', shortLabel: '七下', label: '七年级下册' },
+  { slug: '八年级上册', file: '八年级上册古诗词.html', shortLabel: '八上', label: '八年级上册' },
+  { slug: '八年级下册', file: '八年级下册古诗词.html', shortLabel: '八下', label: '八年级下册' },
+  { slug: '九年级上册', file: '九年级上册古诗词.html', shortLabel: '九上', label: '九年级上册' },
+  { slug: '九年级下册', file: '九年级下册古诗词.html', shortLabel: '九下', label: '九年级下册' },
 ];
 
 export const DEFAULT_GRADE_SLUG = GRADE_PAGES[0].slug;

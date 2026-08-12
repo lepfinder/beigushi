@@ -7,7 +7,29 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3333;
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const CONTENT_DIR = path.join(process.cwd(), 'content');
+/** 百度统计站点 ID；设为空字符串可关闭 */
+const BAIDU_TONGJI_ID = process.env.BAIDU_TONGJI_ID ?? '8403095a5f32952c96ddac970e7cbe76';
 
+function buildBaiduTongjiScript(): string {
+  if (!BAIDU_TONGJI_ID) return '';
+  return `<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?${BAIDU_TONGJI_ID}";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>`;
+}
+
+function injectHeadSnippet(html: string, snippet: string): string {
+  if (!snippet) return html;
+  if (/<\/head>/i.test(html)) {
+    return html.replace(/<\/head>/i, `${snippet}\n</head>`);
+  }
+  return snippet + html;
+}
 function isJuniorGrade(grade: GradePage): boolean {
   return /[七八九]年级/.test(grade.slug);
 }
@@ -312,6 +334,8 @@ function injectSeoAndNav(html: string, grade: GradePage): string {
     );
   }
 
+  result = injectHeadSnippet(result, buildBaiduTongjiScript());
+
   if (/<body[^>]*>/i.test(result)) {
     result = result.replace(/<body([^>]*)>/i, `<body$1>\n${buildGradeNav(grade)}`);
   } else {
@@ -355,6 +379,7 @@ function renderNotFound(message: string): string {
     a { color: #8b6914; }
     ul { line-height: 2; }
   </style>
+  ${buildBaiduTongjiScript()}
 </head>
 <body>
   <div class="box">

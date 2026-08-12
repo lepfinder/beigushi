@@ -1,122 +1,301 @@
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv';
-import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
-
-dotenv.config();
+import { DEFAULT_GRADE_SLUG, findGradeBySlug, GRADE_PAGES, type GradePage } from './grades.js';
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3333;
+const PUBLIC_DIR = path.join(process.cwd(), 'public');
+const CONTENT_DIR = path.join(process.cwd(), 'content');
 
-app.use(express.json());
+function buildGradeNav(current: GradePage): string {
+  const menuItems = GRADE_PAGES.map((g) => {
+    const active = g.slug === current.slug ? ' is-active' : '';
+    return `<a class="grade-menu__item${active}" href="/${encodeURIComponent(g.slug)}" role="option" aria-selected="${g.slug === current.slug ? 'true' : 'false'}">${g.label}</a>`;
+  }).join('');
 
-// Lazy GoogleGenAI initialization
-let aiClient: GoogleGenAI | null = null;
-function getAiClient(): GoogleGenAI {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY 未配置，请在设置中提供 API Key。');
-    }
-    aiClient = new GoogleGenAI({ apiKey });
+  return `
+<style id="site-grade-nav-style">
+  body { padding-top: 64px !important; }
+  .site-grade-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(253, 251, 245, 0.92);
+    border-bottom: 1px solid rgba(212, 197, 160, 0.7);
+    backdrop-filter: saturate(1.1) blur(12px);
+    -webkit-backdrop-filter: saturate(1.1) blur(12px);
   }
-  return aiClient;
+  .site-grade-nav__inner {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .site-grade-nav .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+    color: #2c2c2c;
+    text-decoration: none;
+  }
+  .site-grade-nav .brand-mark {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid #8b6914;
+    color: #8b6914;
+    font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+    font-size: 13px;
+    line-height: 19px;
+    text-align: center;
+    letter-spacing: 0;
+  }
+  .site-grade-nav .brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .site-grade-nav .brand-title {
+    font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.18em;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .site-grade-nav .brand-sub {
+    font-family: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 0.68rem;
+    color: #8b6914;
+    letter-spacing: 0.12em;
+  }
+  .grade-menu {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .grade-menu__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border: 0;
+    border-bottom: 1px solid #c4a35a;
+    background: transparent;
+    color: #2c2c2c;
+    font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+    cursor: pointer;
+  }
+  .grade-menu__trigger:hover,
+  .grade-menu.is-open .grade-menu__trigger {
+    border-bottom-color: #8b6914;
+  }
+  .grade-menu__chevron {
+    width: 10px;
+    height: 6px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+  .grade-menu.is-open .grade-menu__chevron {
+    transform: rotate(180deg);
+  }
+  .grade-menu__panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 168px;
+    padding: 8px;
+    display: none;
+    background: #fdfbf5;
+    border: 1px solid #d4c5a0;
+    box-shadow: 0 12px 28px rgba(44, 44, 44, 0.08);
+    z-index: 1001;
+  }
+  .grade-menu.is-open .grade-menu__panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .grade-menu__item {
+    display: block;
+    padding: 8px 10px;
+    color: #2c2c2c;
+    text-decoration: none;
+    text-align: center;
+    font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    border: 1px solid transparent;
+  }
+  .grade-menu__item:hover {
+    background: #f5f0e1;
+    border-color: #d4c5a0;
+  }
+  .grade-menu__item.is-active {
+    background: #8b6914;
+    border-color: #8b6914;
+    color: #fdfbf5;
+  }
+  @media (max-width: 640px) {
+    body { padding-top: 60px !important; }
+    .site-grade-nav__inner { padding: 12px 16px; }
+    .site-grade-nav .brand-title { font-size: 0.92rem; letter-spacing: 0.1em; }
+    .site-grade-nav .brand-sub { display: none; }
+    .grade-menu__trigger { font-size: 0.9rem; }
+    .grade-menu__panel { min-width: 156px; }
+  }
+</style>
+<nav class="site-grade-nav" aria-label="年级切换">
+  <div class="site-grade-nav__inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">詩</span>
+      <span class="brand-text">
+        <span class="brand-title">中小学校内必备古诗词</span>
+        <span class="brand-sub">统编语文 · 在线典藏</span>
+      </span>
+    </a>
+    <div class="grade-menu" id="grade-menu">
+      <button type="button" class="grade-menu__trigger" id="grade-menu-trigger" aria-haspopup="listbox" aria-expanded="false">
+        <span>${current.label}</span>
+        <svg class="grade-menu__chevron" viewBox="0 0 10 6" aria-hidden="true"><path fill="none" stroke="#8b6914" stroke-width="1.4" d="M1 1l4 4 4-4"/></svg>
+      </button>
+      <div class="grade-menu__panel" role="listbox" aria-label="选择年级">
+        ${menuItems}
+      </div>
+    </div>
+  </div>
+</nav>
+<script>
+(function () {
+  var menu = document.getElementById('grade-menu');
+  var trigger = document.getElementById('grade-menu-trigger');
+  if (!menu || !trigger) return;
+  function closeMenu() {
+    menu.classList.remove('is-open');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+  function toggleMenu() {
+    var open = menu.classList.toggle('is-open');
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  trigger.addEventListener('click', function (e) {
+    e.stopPropagation();
+    toggleMenu();
+  });
+  document.addEventListener('click', function (e) {
+    if (!menu.contains(e.target)) closeMenu();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+})();
+</script>`;
 }
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+function injectSeoAndNav(html: string, grade: GradePage): string {
+  const description = `${grade.label}统编版语文古诗词与背诵课文，适合中小学生在线阅读与背诵。`;
+  const canonical = `/${encodeURIComponent(grade.slug)}`;
+
+  let result = html;
+
+  if (!/name=["']description["']/i.test(result)) {
+    result = result.replace(
+      /<head>/i,
+      `<head>\n<meta name="description" content="${description}">\n<link rel="canonical" href="${canonical}">`
+    );
+  }
+
+  if (/<body[^>]*>/i.test(result)) {
+    result = result.replace(/<body([^>]*)>/i, `<body$1>\n${buildGradeNav(grade)}`);
+  } else {
+    result = buildGradeNav(grade) + result;
+  }
+
+  return result;
+}
+
+function renderGradePage(grade: GradePage, res: express.Response) {
+  const filePath = path.join(CONTENT_DIR, grade.file);
+  if (!fs.existsSync(filePath)) {
+    res.status(404).type('html').send(renderNotFound(`未找到文件：${grade.file}`));
+    return;
+  }
+
+  const raw = fs.readFileSync(filePath, 'utf8');
+  res
+    .status(200)
+    .type('html')
+    .set('Cache-Control', 'public, max-age=300')
+    .send(injectSeoAndNav(raw, grade));
+}
+
+function renderNotFound(message: string): string {
+  const links = GRADE_PAGES.map(
+    (g) => `<li><a href="/${encodeURIComponent(g.slug)}">${g.label}</a></li>`
+  ).join('');
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>页面未找到 · 中小学校内必备古诗词</title>
+  <style>
+    body { font-family: "Noto Sans SC", "PingFang SC", sans-serif; background: #fdfbf5; color: #2c2c2c; padding: 48px 20px; }
+    .box { max-width: 560px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin-bottom: 12px; }
+    p { color: #5a5a5a; margin-bottom: 20px; }
+    a { color: #8b6914; }
+    ul { line-height: 2; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>页面未找到</h1>
+    <p>${message}</p>
+    <ul>${links}</ul>
+  </div>
+</body>
+</html>`;
+}
+
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// AI Poetry Tutor Explanation API
-app.post('/api/ai/explain', async (req, res) => {
-  try {
-    const { title, author, dynasty, content, question } = req.body;
-    if (!title || !content) {
-      return res.status(400).json({ error: '缺失必要的作品标题与内容' });
-    }
+// 公共静态资源（样式 / 脚本）
+app.use('/styles', express.static(path.join(PUBLIC_DIR, 'styles'), { maxAge: '1h' }));
+app.use('/js', express.static(path.join(PUBLIC_DIR, 'js'), { maxAge: '1h' }));
 
-    const ai = getAiClient();
-    const prompt = `你是一位风趣、耐心且知识渊博的中小学语文名师与国学专家。
-针对作品：《${title}》（${dynasty || ''}·${author || '未知'}）
-内容：
-${content}
-
-${question ? `学生提出了以下疑问："${question}"` : '请为小学/初中学生提供生动的赏析、背景故事、背诵记忆技巧及1-2个互动思考题。'}
-
-要求：
-1. 语言亲切生动，适合学生理解，避免晦涩难懂的学术术语。
-2. 包含：【意境解读】、【背诵秘籍】、【拓展小知识】。
-3. 结构清晰，格式排版美观，使用 Markdown 格式输出。`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-
-    res.json({ text: response.text });
-  } catch (error: any) {
-    console.error('AI Explain Error:', error);
-    res.status(500).json({ error: error.message || 'AI服务解析失败，请稍后重试' });
-  }
+app.get('/', (_req, res) => {
+  res.redirect(302, `/${encodeURIComponent(DEFAULT_GRADE_SLUG)}`);
 });
 
-// AI Poetry Quiz Generation API
-app.post('/api/ai/quiz', async (req, res) => {
-  try {
-    const { title, author, content } = req.body;
-    const ai = getAiClient();
-
-    const prompt = `请根据古诗/课文《${title}》（${author}）设计 3 道适合中小学生的互动理解与背诵测试题。
-作品内容：
-${content}
-
-请以 JSON 格式输出，数组形式，每项包含：
-- id: 数字
-- question: 题目描述（可以是看拼音写词语、补全下句、词语理解或意境选择）
-- options: 4个选项的数组 [A, B, C, D]
-- answer: 正确选项的字母 (A/B/C/D)
-- explanation: 简短解析说明
-
-请只输出纯 JSON 代码块，不要添加额外的 Markdown 标记以外的文本。`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-
-    let rawText = response.text || '';
-    // Clean potential markdown code blocks
-    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const quizData = JSON.parse(rawText);
-
-    res.json({ quiz: quizData });
-  } catch (error: any) {
-    console.error('AI Quiz Error:', error);
-    res.status(500).json({ error: error.message || '生成测试题失败' });
+app.get('/:grade', (req, res, next) => {
+  const slug = decodeURIComponent(req.params.grade);
+  const grade = findGradeBySlug(slug);
+  if (!grade) {
+    next();
+    return;
   }
+  renderGradePage(grade, res);
 });
 
-// Setup Vite or Static File Serving
-async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+app.use((_req, res) => {
+  res.status(404).type('html').send(renderNotFound('没有对应的年级页面，请从下面选择。'));
+});
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[古诗词典藏] Server running at http://localhost:${PORT}`);
-  });
-}
-
-startServer();
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[必备古诗词] http://localhost:${PORT}`);
+});

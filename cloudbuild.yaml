@@ -1,0 +1,37 @@
+steps:
+  # 1. 构建 Docker 镜像
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', 'gcr.io/myxxyagent/github.com/lepfinder/beigushi:$COMMIT_SHA',
+      '-f', 'Dockerfile',
+      '.'
+    ]
+
+  # 2. 推送镜像到仓库（gcloud run deploy 必须从镜像仓库拉取）
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push', 'gcr.io/myxxyagent/github.com/lepfinder/beigushi:$COMMIT_SHA'
+    ]
+
+  # 3. 部署镜像到 Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'beigushi',
+      '--image', 'gcr.io/myxxyagent/github.com/lepfinder/beigushi:$COMMIT_SHA',
+      '--region', 'us-west1',
+      '--project', 'myxxyagent'
+    ]
+
+  # 4. 自动清理旧镜像（仅保留最近的 3 个）
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['./scripts/cleanup-images.sh']
+
+images:
+  - 'gcr.io/myxxyagent/github.com/lepfinder/beigushi:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE

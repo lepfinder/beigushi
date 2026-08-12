@@ -8,11 +8,24 @@ const PORT = Number(process.env.PORT) || 3333;
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const CONTENT_DIR = path.join(process.cwd(), 'content');
 
+function isJuniorGrade(grade: GradePage): boolean {
+  return /[七八九]年级/.test(grade.slug);
+}
+
+function renderGradeMenuItems(grades: GradePage[], current: GradePage): string {
+  return grades
+    .map((g) => {
+      const active = g.slug === current.slug ? ' is-active' : '';
+      return `<a class="grade-menu__item${active}" href="/${encodeURIComponent(g.slug)}" role="option" aria-selected="${g.slug === current.slug ? 'true' : 'false'}" title="${g.label}">${g.shortLabel}</a>`;
+    })
+    .join('');
+}
+
 function buildGradeNav(current: GradePage): string {
-  const menuItems = GRADE_PAGES.map((g) => {
-    const active = g.slug === current.slug ? ' is-active' : '';
-    return `<a class="grade-menu__item${active}" href="/${encodeURIComponent(g.slug)}" role="option" aria-selected="${g.slug === current.slug ? 'true' : 'false'}">${g.label}</a>`;
-  }).join('');
+  const primaryGrades = GRADE_PAGES.filter((g) => !isJuniorGrade(g));
+  const juniorGrades = GRADE_PAGES.filter(isJuniorGrade);
+  const primaryItems = renderGradeMenuItems(primaryGrades, current);
+  const juniorItems = renderGradeMenuItems(juniorGrades, current);
 
   return `
 <style id="site-grade-nav-style">
@@ -114,22 +127,40 @@ function buildGradeNav(current: GradePage): string {
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
-    min-width: 168px;
-    padding: 8px;
+    width: min(280px, calc(100vw - 32px));
+    max-height: min(70vh, 420px);
+    padding: 10px;
     display: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     background: #fdfbf5;
     border: 1px solid #d4c5a0;
     box-shadow: 0 12px 28px rgba(44, 44, 44, 0.08);
     z-index: 1001;
   }
   .grade-menu.is-open .grade-menu__panel {
+    display: block;
+  }
+  .grade-menu__group + .grade-menu__group {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #d4c5a0;
+  }
+  .grade-menu__group-label {
+    font-family: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 0.68rem;
+    color: #8b6914;
+    letter-spacing: 0.16em;
+    margin: 0 4px 6px;
+  }
+  .grade-menu__grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 4px;
   }
   .grade-menu__item {
     display: block;
-    padding: 8px 10px;
+    padding: 8px 6px;
     color: #2c2c2c;
     text-decoration: none;
     text-align: center;
@@ -153,7 +184,7 @@ function buildGradeNav(current: GradePage): string {
     .site-grade-nav .brand-title { font-size: 0.92rem; letter-spacing: 0.1em; }
     .site-grade-nav .brand-sub { display: none; }
     .grade-menu__trigger { font-size: 0.9rem; }
-    .grade-menu__panel { min-width: 156px; }
+    .grade-menu__panel { width: min(260px, calc(100vw - 24px)); }
   }
   /* 全局加载遮罩样式 */
   .site-grade-loading {
@@ -217,7 +248,14 @@ function buildGradeNav(current: GradePage): string {
         <svg class="grade-menu__chevron" viewBox="0 0 10 6" aria-hidden="true"><path fill="none" stroke="#8b6914" stroke-width="1.4" d="M1 1l4 4 4-4"/></svg>
       </button>
       <div class="grade-menu__panel" role="listbox" aria-label="选择年级">
-        ${menuItems}
+        <div class="grade-menu__group">
+          <div class="grade-menu__group-label">小学</div>
+          <div class="grade-menu__grid">${primaryItems}</div>
+        </div>
+        <div class="grade-menu__group">
+          <div class="grade-menu__group-label">初中</div>
+          <div class="grade-menu__grid">${juniorItems}</div>
+        </div>
       </div>
     </div>
   </div>

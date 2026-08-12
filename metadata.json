@@ -1,0 +1,6 @@
+{
+  "name": "中华古诗词与课文典藏",
+  "description": "专为中小学生设计的响应式古诗词与课文学习平台，支持年级分类、拼音与朗读、背诵卡片、释义赏析与古风学习工具。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

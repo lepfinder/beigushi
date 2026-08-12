@@ -18,7 +18,7 @@ steps:
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args: [
-      'run', 'deploy', 'beigushi',
+      'run', 'deploy', 'service',
       '--image', 'gcr.io/myxxyagent/github.com/lepfinder/beigushi:$COMMIT_SHA',
       '--region', 'us-west1',
       '--project', 'myxxyagent'

@@ -155,7 +155,53 @@ function buildGradeNav(current: GradePage): string {
     .grade-menu__trigger { font-size: 0.9rem; }
     .grade-menu__panel { min-width: 156px; }
   }
+  /* 全局加载遮罩样式 */
+  .site-grade-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background: rgba(253, 251, 245, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .site-grade-loading.is-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .site-grade-loading__spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(139, 105, 20, 0.2);
+    border-top-color: #8b6914;
+    border-radius: 50%;
+    animation: siteGradeSpin 0.7s infinite linear;
+  }
+  .site-grade-loading__text {
+    font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+    font-size: 0.95rem;
+    color: #8b6914;
+    letter-spacing: 0.1em;
+  }
+  @keyframes siteGradeSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 </style>
+<div class="site-grade-loading" id="site-grade-loading" aria-hidden="true">
+  <div class="site-grade-loading__spinner"></div>
+  <div class="site-grade-loading__text">正在加载课文...</div>
+</div>
 <nav class="site-grade-nav" aria-label="年级切换">
   <div class="site-grade-nav__inner">
     <a class="brand" href="/">
@@ -180,6 +226,7 @@ function buildGradeNav(current: GradePage): string {
 (function () {
   var menu = document.getElementById('grade-menu');
   var trigger = document.getElementById('grade-menu-trigger');
+  var loading = document.getElementById('site-grade-loading');
   if (!menu || !trigger) return;
   function closeMenu() {
     menu.classList.remove('is-open');
@@ -193,6 +240,17 @@ function buildGradeNav(current: GradePage): string {
     e.stopPropagation();
     toggleMenu();
   });
+  var items = menu.querySelectorAll('.grade-menu__item');
+  for (var i = 0; i < items.length; i++) {
+    items[i].addEventListener('click', function (e) {
+      if (this.classList.contains('is-active')) return;
+      if (loading) {
+        loading.classList.add('is-active');
+        loading.setAttribute('aria-hidden', 'false');
+      }
+      closeMenu();
+    });
+  }
   document.addEventListener('click', function (e) {
     if (!menu.contains(e.target)) closeMenu();
   });

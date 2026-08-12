@@ -18,12 +18,10 @@ steps:
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args: [
-      'run', 'deploy', 'beigushi',
+      'run', 'deploy', 'service',
       '--image', 'gcr.io/myxxyagent/github.com/lepfinder/beigushi:$COMMIT_SHA',
       '--region', 'us-west1',
-      '--project', 'myxxyagent',
-      '--allow-unauthenticated',
-      '--update-labels', 'managed-by=gcp-cloud-build-deploy-cloud-run,gcb-trigger-id=2f7cfa93-4e48-46e6-bc90-97c810f751c6'
+      '--project', 'myxxyagent'
     ]
 
   # 4. 自动清理旧镜像（仅保留最近的 3 个）

@@ -117,7 +117,26 @@ def clean_text(html: str) -> str:
     html = re.sub(r"<rt[^>]*>.*?</rt>", "", html, flags=re.S)
     html = re.sub(r"<br\s*/?>", "", html, flags=re.I)
     text = re.sub(r"<[^>]+>", "", html)
+    text = (
+        text.replace("&nbsp;", " ")
+        .replace("\xa0", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", '"')
+        .replace("&#39;", "'")
+        .replace("&ldquo;", "“")
+        .replace("&rdquo;", "”")
+        .replace("&mdash;", "—")
+        .replace("&ndash;", "–")
+    )
     return re.sub(r"\s+", " ", text).strip()
+
+
+def is_blank_paragraph(html: str) -> bool:
+    raw = re.sub(r"<[^>]+>", "", html)
+    raw = raw.replace("&nbsp;", " ").replace("\xa0", " ")
+    return not raw.strip()
 
 
 def infer_dynasty(meta_text: str) -> tuple[str, str]:
@@ -180,9 +199,14 @@ def extract() -> list[dict]:
             lines: list[str] = []
             if body_m:
                 for p in re.findall(r"<p[^>]*>(.*?)</p>", body_m.group(1), re.S):
-                    line = clean_text(p)
-                    if line:
-                        lines.append(line)
+                    if is_blank_paragraph(p) or not clean_text(p):
+                        # 词上下阕之间的空行，保留为分段标记
+                        if lines and lines[-1] != "":
+                            lines.append("")
+                        continue
+                    lines.append(clean_text(p))
+                while lines and lines[-1] == "":
+                    lines.pop()
 
             notes = [
                 clean_text(n)
@@ -215,7 +239,7 @@ def extract() -> list[dict]:
                 "dynastyKey": dynasty_key,
                 "source": source,
                 "metaRaw": meta_text,
-                "excerpt": lines[0] if lines else "",
+                "excerpt": next((ln for ln in lines if ln), ""),
                 "lines": lines,
                 "notes": notes,
                 "lineCount": len(lines),

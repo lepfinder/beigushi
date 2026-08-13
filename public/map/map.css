@@ -328,6 +328,10 @@ body {
   margin: 0;
 }
 
+.map-modal__body .is-stanza-break {
+  height: 0.85em;
+}
+
 .map-modal__body .is-preface {
   font-size: 0.92rem;
   color: var(--ink-light);
@@ -360,47 +364,6 @@ body {
   display: block;
   margin-bottom: 2px;
   padding-left: 0.85em;
-}
-
-.map-modal__list {
-  margin: 0 0 16px;
-}
-
-.map-modal__list.is-hidden {
-  display: none;
-}
-
-.map-modal__list-label {
-  display: block;
-  font-size: 0.72rem;
-  color: var(--accent);
-  letter-spacing: 0.12em;
-  margin-bottom: 8px;
-}
-
-.map-modal__list-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.map-modal__list button {
-  border: 1px solid var(--border);
-  background: rgba(253, 251, 245, 0.75);
-  color: var(--ink-light);
-  padding: 6px 12px;
-  font: inherit;
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  line-height: 1.4;
-}
-
-.map-modal__list button.is-active,
-.map-modal__list button:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fdfbf5;
 }
 
 /* Leaflet tweaks */

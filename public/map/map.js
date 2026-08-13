@@ -48,7 +48,6 @@
     body: document.getElementById('card-body'),
     notes: document.getElementById('card-notes'),
     notesList: document.getElementById('card-notes-list'),
-    siblings: document.getElementById('card-siblings'),
   };
 
   var map = L.map('map', {
@@ -105,18 +104,6 @@
     var gradeHint = String(poem.grade || '').replace(/册$/, '');
     var label = shortAuthor(poem.author) + gradeHint;
     return label.length > 8 ? label.slice(0, 8) : label;
-  }
-
-  function siblingLabel(poem, peers) {
-    var sameTitle = peers.every(function (p) { return p.title === poem.title; });
-    var sameAuthor = peers.every(function (p) { return p.author === poem.author; });
-    if (sameTitle && !sameAuthor) {
-      return (poem.author || '佚名') + ' · ' + (poem.grade || '');
-    }
-    if (sameTitle && sameAuthor) {
-      return poem.grade || poem.id;
-    }
-    return (poem.title || '') + ' · ' + (poem.author || '') + ' · ' + (poem.grade || '');
   }
 
   function readQuery() {
@@ -290,16 +277,6 @@
     });
   }
 
-  function poemsAtSamePoint(poem) {
-    var place = placeOf(poem);
-    if (!place) return [poem];
-    var key = coordKey(place);
-    return state.filtered.filter(function (p) {
-      var pl = placeOf(p);
-      return pl && coordKey(pl) === key;
-    });
-  }
-
   function openModal() {
     els.modal.classList.remove('is-hidden');
     els.modal.setAttribute('aria-hidden', 'false');
@@ -343,7 +320,11 @@
 
     var lines = poem.lines && poem.lines.length ? poem.lines : (poem.excerpt ? [poem.excerpt] : []);
     els.body.innerHTML = lines.map(function (line) {
-      return '<p>' + escapeHtml(line) + '</p>';
+      var text = String(line || '').replace(/&nbsp;/gi, ' ').trim();
+      if (!text) {
+        return '<p class="is-stanza-break" aria-hidden="true"></p>';
+      }
+      return '<p>' + escapeHtml(text) + '</p>';
     }).join('');
 
     var notes = poem.notes && poem.notes.length ? poem.notes : [];
@@ -355,28 +336,6 @@
     } else {
       els.notes.classList.add('is-hidden');
       els.notesList.innerHTML = '';
-    }
-
-    var siblings = poemsAtSamePoint(poem);
-    if (siblings.length > 1) {
-      els.siblings.classList.remove('is-hidden');
-      els.siblings.innerHTML =
-        '<span class="map-modal__list-label">同地 ' + siblings.length + ' 首</span>' +
-        '<div class="map-modal__list-tabs">' +
-        siblings.map(function (p) {
-          var active = p.id === id ? ' is-active' : '';
-          return '<button type="button" class="' + active.trim() + '" data-id="' + escapeHtml(p.id) + '">' +
-            escapeHtml(siblingLabel(p, siblings)) + '</button>';
-        }).join('') +
-        '</div>';
-      Array.prototype.forEach.call(els.siblings.querySelectorAll('button'), function (btn) {
-        btn.addEventListener('click', function () {
-          showPoem(btn.getAttribute('data-id'), false);
-        });
-      });
-    } else {
-      els.siblings.classList.add('is-hidden');
-      els.siblings.innerHTML = '';
     }
 
     refreshActiveBanner();

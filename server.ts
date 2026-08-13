@@ -2,6 +2,26 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { DEFAULT_GRADE_SLUG, findGradeBySlug, GRADE_PAGES, type GradePage } from './grades.js';
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_ORIGIN,
+  absoluteUrl,
+  buildGradeJsonLd,
+  buildHomeJsonLd,
+  buildHomeNoscriptCatalog,
+  buildLlmsTxt,
+  buildMapJsonLd,
+  buildRobotsTxt,
+  buildSitemapXml,
+  gradeAbsUrl,
+  gradePath,
+  gradeSeoCopy,
+  loadPoemsForSeo,
+  poemsOfGrade,
+  semanticizePoemTitles,
+  upsertSeoHead,
+} from './seo.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3333;
@@ -9,6 +29,7 @@ const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const CONTENT_DIR = path.join(process.cwd(), 'content');
 const DATA_DIR = path.join(process.cwd(), 'data');
 const POEMS_META_PATH = path.join(DATA_DIR, 'poems_meta.json');
+const poemsSeo = loadPoemsForSeo(POEMS_META_PATH);
 /** 百度统计站点 ID；设为空字符串可关闭 */
 const BAIDU_TONGJI_ID = process.env.BAIDU_TONGJI_ID ?? '8403095a5f32952c96ddac970e7cbe76';
 
@@ -351,18 +372,17 @@ function buildGradeNav(current: GradePage): string {
 }
 
 function injectSeoAndNav(html: string, grade: GradePage): string {
-  const description = `${grade.label}统编版语文古诗词与背诵课文，适合中小学生在线阅读与背诵。`;
-  const canonical = `/${encodeURIComponent(grade.slug)}`;
+  const poems = poemsOfGrade(poemsSeo, grade);
+  const { title, description } = gradeSeoCopy(grade, poems);
+  const canonical = gradeAbsUrl(grade.slug);
 
-  let result = html;
-
-  if (!/name=["']description["']/i.test(result)) {
-    result = result.replace(
-      /<head>/i,
-      `<head>\n<meta name="description" content="${description}">\n<link rel="canonical" href="${canonical}">`
-    );
-  }
-
+  let result = semanticizePoemTitles(html);
+  result = upsertSeoHead(result, {
+    title,
+    description,
+    canonical,
+    jsonLd: buildGradeJsonLd(grade, poems),
+  });
   result = injectHeadSnippet(result, buildBaiduTongjiScript());
 
   if (/<body[^>]*>/i.test(result)) {
@@ -441,12 +461,40 @@ function sendMapPage(_req: express.Request, res: express.Response) {
     res.status(404).type('html').send(renderNotFound('古诗地图页面未找到。'));
     return;
   }
+  const title = `古诗地图 · ${SITE_NAME}`;
+  const description = '统编语文中小学古诗词地理分布图，按学段、朝代与地点类型浏览。坐标为教学示意。';
   let html = fs.readFileSync(mapPath, 'utf8');
+  html = upsertSeoHead(html, {
+    title,
+    description,
+    canonical: absoluteUrl('/map'),
+    jsonLd: buildMapJsonLd(),
+  });
   html = injectHeadSnippet(html, buildBaiduTongjiScript());
   res.status(200).type('html').set('Cache-Control', 'public, max-age=60').send(html);
 }
 
 app.get(['/map', '/map/'], sendMapPage);
+
+app.get('/robots.txt', (_req, res) => {
+  const filePath = path.join(PUBLIC_DIR, 'robots.txt');
+  if (fs.existsSync(filePath)) {
+    res.type('text/plain').set('Cache-Control', 'public, max-age=3600').sendFile(filePath);
+    return;
+  }
+  res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(buildRobotsTxt());
+});
+
+app.get('/sitemap.xml', (_req, res) => {
+  res
+    .type('application/xml')
+    .set('Cache-Control', 'public, max-age=3600')
+    .send(buildSitemapXml(CONTENT_DIR));
+});
+
+app.get('/llms.txt', (_req, res) => {
+  res.type('text/plain; charset=utf-8').set('Cache-Control', 'public, max-age=3600').send(buildLlmsTxt(poemsSeo));
+});
 
 // 公共静态资源（样式 / 脚本）
 app.use('/styles', express.static(path.join(PUBLIC_DIR, 'styles'), { maxAge: '1h' }));
@@ -455,13 +503,13 @@ app.use('/map', express.static(path.join(PUBLIC_DIR, 'map'), { maxAge: '5m', ind
 
 app.get('/', (_req, res) => {
   const allowed = GRADE_PAGES.map((g) => g.slug);
-  const fallback = `/${encodeURIComponent(DEFAULT_GRADE_SLUG)}`;
-  const html = `<!DOCTYPE html>
+  const fallback = gradePath(DEFAULT_GRADE_SLUG);
+  let html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>中小学校内必备古诗词</title>
+  <title>${SITE_NAME}</title>
   <style>
     body { margin: 0; min-height: 100vh; display: grid; place-items: center;
       font-family: "Noto Sans SC", "PingFang SC", sans-serif; background: #fdfbf5; color: #8b6914; }
@@ -469,6 +517,7 @@ app.get('/', (_req, res) => {
 </head>
 <body>
   <p>正在进入课文…</p>
+  ${buildHomeNoscriptCatalog(poemsSeo)}
   <script>
   (function () {
     var allowed = ${JSON.stringify(allowed)};
@@ -482,15 +531,20 @@ app.get('/', (_req, res) => {
     }
   })();
   </script>
-  <noscript><a href="${fallback}">进入默认年级</a></noscript>
 </body>
 </html>`;
+  html = upsertSeoHead(html, {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    canonical: `${SITE_ORIGIN}/`,
+    jsonLd: buildHomeJsonLd(poemsSeo),
+  });
   res.status(200).type('html').set('Cache-Control', 'no-store').send(html);
 });
 
 app.get('/:grade', (req, res, next) => {
   const slug = decodeURIComponent(req.params.grade);
-  if (slug === 'map' || slug === 'api') {
+  if (slug === 'map' || slug === 'api' || slug === 'robots.txt' || slug === 'sitemap.xml' || slug === 'llms.txt') {
     next();
     return;
   }

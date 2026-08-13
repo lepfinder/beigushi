@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci || npm install
 
-COPY grades.ts server.ts ./
+COPY grades.ts server.ts seo.ts ./
 COPY public ./public
 COPY content ./content
 COPY data ./data

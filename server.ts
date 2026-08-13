@@ -325,7 +325,12 @@ function buildGradeNav(current: GradePage): string {
   });
   var items = menu.querySelectorAll('.grade-menu__item');
   for (var i = 0; i < items.length; i++) {
-    items[i].addEventListener('click', function (e) {
+    items[i].addEventListener('click', function () {
+      var href = this.getAttribute('href') || '';
+      var slug = decodeURIComponent(href.replace(/^\\//, ''));
+      if (slug) {
+        try { localStorage.setItem('beigushi.lastGrade', slug); } catch (err) {}
+      }
       if (this.classList.contains('is-active')) return;
       if (loading) {
         loading.classList.add('is-active');
@@ -334,6 +339,7 @@ function buildGradeNav(current: GradePage): string {
       closeMenu();
     });
   }
+  try { localStorage.setItem('beigushi.lastGrade', ${JSON.stringify(current.slug)}); } catch (err) {}
   document.addEventListener('click', function (e) {
     if (!menu.contains(e.target)) closeMenu();
   });
@@ -448,7 +454,38 @@ app.use('/js', express.static(path.join(PUBLIC_DIR, 'js'), { maxAge: '1h' }));
 app.use('/map', express.static(path.join(PUBLIC_DIR, 'map'), { maxAge: '5m', index: false, redirect: false }));
 
 app.get('/', (_req, res) => {
-  res.redirect(302, `/${encodeURIComponent(DEFAULT_GRADE_SLUG)}`);
+  const allowed = GRADE_PAGES.map((g) => g.slug);
+  const fallback = `/${encodeURIComponent(DEFAULT_GRADE_SLUG)}`;
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中小学校内必备古诗词</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+      font-family: "Noto Sans SC", "PingFang SC", sans-serif; background: #fdfbf5; color: #8b6914; }
+  </style>
+</head>
+<body>
+  <p>正在进入课文…</p>
+  <script>
+  (function () {
+    var allowed = ${JSON.stringify(allowed)};
+    var fallback = ${JSON.stringify(fallback)};
+    var slug = null;
+    try { slug = localStorage.getItem('beigushi.lastGrade'); } catch (e) {}
+    if (slug && allowed.indexOf(slug) >= 0) {
+      location.replace('/' + encodeURIComponent(slug));
+    } else {
+      location.replace(fallback);
+    }
+  })();
+  </script>
+  <noscript><a href="${fallback}">进入默认年级</a></noscript>
+</body>
+</html>`;
+  res.status(200).type('html').set('Cache-Control', 'no-store').send(html);
 });
 
 app.get('/:grade', (req, res, next) => {

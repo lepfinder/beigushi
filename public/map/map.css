@@ -1,0 +1,548 @@
+:root {
+  --ink: #2c2c2c;
+  --ink-light: #5a5a5a;
+  --accent: #8b6914;
+  --accent-light: #c4a35a;
+  --paper: #fdfbf5;
+  --paper-dark: #f5f0e1;
+  --border: #d4c5a0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.map-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(253, 251, 245, 0.94);
+  border-bottom: 1px solid rgba(212, 197, 160, 0.7);
+  backdrop-filter: saturate(1.1) blur(12px);
+  -webkit-backdrop-filter: saturate(1.1) blur(12px);
+}
+
+.map-top__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.map-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.map-brand__mark {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+  font-size: 13px;
+  line-height: 19px;
+  text-align: center;
+}
+
+.map-brand__title {
+  display: block;
+  font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.18em;
+}
+
+.map-brand__sub {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+}
+
+.map-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  flex: 1;
+  justify-content: center;
+}
+
+.map-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--ink-light);
+  letter-spacing: 0.08em;
+}
+
+.map-filter select {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='none' stroke='%238b6914' stroke-width='1.4' d='M1 1l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--ink);
+  padding: 6px 28px 6px 10px;
+  font: inherit;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.map-filter select:focus {
+  outline: 1px solid var(--accent-light);
+}
+
+.map-top__right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.map-count {
+  font-size: 0.78rem;
+  color: var(--ink-light);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.map-back {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.map-back:hover {
+  border-bottom-color: var(--accent-light);
+}
+
+.map-layout {
+  height: 100%;
+  padding-top: 64px;
+}
+
+.map-canvas {
+  height: 100%;
+  background: #efe8d8;
+}
+
+/* Modal */
+.map-modal.is-hidden {
+  display: none;
+}
+
+.map-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.map-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(44, 44, 44, 0.28);
+  backdrop-filter: blur(2px);
+}
+
+.map-modal__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(440px, 100%);
+  max-height: min(84vh, 720px);
+  overflow: auto;
+  background:
+    linear-gradient(180deg, rgba(253, 251, 245, 0.92), rgba(245, 240, 225, 0.96)),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(139, 105, 20, 0.015) 3px,
+      rgba(139, 105, 20, 0.015) 4px
+    );
+  border: 1px solid var(--border);
+  box-shadow:
+    0 0 0 1px rgba(253, 251, 245, 0.8) inset,
+    0 18px 48px rgba(44, 44, 44, 0.16);
+  padding: 32px 28px 28px;
+  animation: mapModalIn 0.22s ease;
+}
+
+@keyframes mapModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.map-modal__dialog::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(212, 197, 160, 0.55);
+  pointer-events: none;
+}
+
+.map-modal__ornament {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+  font-size: 12px;
+  line-height: 19px;
+  text-align: center;
+}
+
+.map-modal__ornament::after {
+  content: "詩";
+}
+
+.map-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-light);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-modal__close:hover {
+  color: var(--accent);
+}
+
+.map-modal__meta {
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.14em;
+  margin: 8px 0 14px 36px;
+  padding-right: 28px;
+}
+
+.map-modal__title {
+  font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+  font-size: 1.7rem;
+  letter-spacing: 0.14em;
+  font-weight: 400;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.map-modal__author {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--ink-light);
+  margin-bottom: 18px;
+}
+
+.map-modal__dynasty {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 3px;
+  font-size: 0.78rem;
+}
+
+.map-modal__dynasty.han { background: rgba(90, 122, 58, 0.12); color: #5a7a3a; }
+.map-modal__dynasty.wei { background: rgba(107, 79, 58, 0.12); color: #6b4f3a; }
+.map-modal__dynasty.jin { background: rgba(74, 106, 90, 0.12); color: #4a6a5a; }
+.map-modal__dynasty.nanbeichao { background: rgba(90, 122, 74, 0.12); color: #5a7a4a; }
+.map-modal__dynasty.tang { background: rgba(184, 84, 80, 0.12); color: #b85450; }
+.map-modal__dynasty.song { background: rgba(74, 124, 140, 0.12); color: #4a7c8c; }
+.map-modal__dynasty.yuan { background: rgba(58, 79, 122, 0.12); color: #3a4f7a; }
+.map-modal__dynasty.ming { background: rgba(122, 108, 157, 0.12); color: #7a6c9d; }
+.map-modal__dynasty.qing { background: rgba(92, 138, 90, 0.12); color: #5c8a5a; }
+.map-modal__dynasty.xianqin { background: rgba(70, 89, 60, 0.12); color: #46593c; }
+.map-modal__dynasty.modern { background: rgba(45, 107, 80, 0.12); color: #2d6b50; }
+
+.map-modal__place {
+  font-size: 0.88rem;
+  line-height: 1.75;
+  padding: 12px 14px;
+  background: rgba(245, 240, 225, 0.9);
+  border: 1px solid rgba(212, 197, 160, 0.65);
+  border-left: 3px solid var(--accent);
+  margin-bottom: 20px;
+  color: var(--ink-light);
+}
+
+.map-modal__place strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.map-modal__body {
+  font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+  font-size: 1.18rem;
+  line-height: 2.2;
+  letter-spacing: 0.12em;
+  text-align: center;
+  margin: 4px 0 8px;
+  padding: 8px 4px 16px;
+}
+
+.map-modal__body p {
+  margin: 0;
+}
+
+.map-modal__body .is-preface {
+  font-size: 0.92rem;
+  color: var(--ink-light);
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.map-modal__notes {
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+  font-size: 0.84rem;
+  color: var(--ink-light);
+  line-height: 1.85;
+}
+
+.map-modal__notes.is-hidden {
+  display: none;
+}
+
+.map-modal__notes-title {
+  display: block;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 6px;
+  letter-spacing: 0.1em;
+}
+
+.map-modal__note-item {
+  display: block;
+  margin-bottom: 2px;
+  padding-left: 0.85em;
+}
+
+.map-modal__list {
+  margin: 0 0 16px;
+}
+
+.map-modal__list.is-hidden {
+  display: none;
+}
+
+.map-modal__list-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+
+.map-modal__list-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.map-modal__list button {
+  border: 1px solid var(--border);
+  background: rgba(253, 251, 245, 0.75);
+  color: var(--ink-light);
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.map-modal__list button.is-active,
+.map-modal__list button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fdfbf5;
+}
+
+/* Leaflet tweaks */
+.leaflet-container {
+  background: #efe8d8;
+  font: inherit;
+}
+
+.poem-banner-wrap {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.poem-banner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 3px rgba(44, 44, 44, 0.18));
+  transition: transform 0.15s ease;
+}
+
+.poem-banner.is-active {
+  transform: translateY(-4px);
+  z-index: 2;
+  filter: drop-shadow(0 4px 8px rgba(139, 105, 20, 0.35));
+}
+
+.poem-banner__flag {
+  width: 22px;
+  min-height: 52px;
+  padding: 8px 0 10px;
+  background: linear-gradient(180deg, #f7f1e3 0%, #efe4cc 100%);
+  border: 1px solid var(--accent);
+  border-bottom: 0;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.poem-banner__flag::before,
+.poem-banner__flag::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent-light);
+}
+
+.poem-banner__flag::before { left: 3px; }
+.poem-banner__flag::after { right: 3px; }
+
+.poem-banner.is-origin .poem-banner__flag {
+  background: #fdfbf5;
+  border-style: dashed;
+}
+
+.poem-banner.is-region .poem-banner__flag {
+  border-color: var(--accent-light);
+}
+
+.poem-banner.is-active .poem-banner__flag {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.poem-banner__text {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+  font-size: 12px;
+  line-height: 1.05;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  max-height: 7.2em;
+  overflow: hidden;
+}
+
+.poem-banner.is-active .poem-banner__text {
+  color: #fdfbf5;
+}
+
+.poem-banner__tail {
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 10px solid var(--accent);
+}
+
+.poem-banner.is-origin .poem-banner__tail {
+  border-top-color: var(--accent-light);
+}
+
+.poem-banner.is-active .poem-banner__tail {
+  border-top-color: var(--accent);
+}
+
+.poem-banner__pole {
+  width: 2px;
+  height: 10px;
+  background: var(--accent);
+}
+
+.poem-banner__pin {
+  width: 6px;
+  height: 6px;
+  margin-top: -1px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid #fdfbf5;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+  background: rgba(253, 251, 245, 0.85) !important;
+}
+
+@media (max-width: 860px) {
+  .map-top__inner {
+    padding: 10px 14px;
+  }
+
+  .map-brand__sub {
+    display: none;
+  }
+
+  .map-filters {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .map-count {
+    display: none;
+  }
+
+  .map-modal__dialog {
+    padding: 24px 20px 20px;
+  }
+}

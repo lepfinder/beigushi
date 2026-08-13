@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>古诗地图 · 中小学校内必备古诗词</title>
+  <meta name="description" content="统编语文中小学古诗词地理分布图，按学段、朝代与地点类型浏览。">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/map/map.css">
+</head>
+<body>
+  <header class="map-top">
+    <div class="map-top__inner">
+      <a class="map-brand" href="/">
+        <span class="map-brand__mark" aria-hidden="true">詩</span>
+        <span class="map-brand__text">
+          <span class="map-brand__title">古诗地图</span>
+          <span class="map-brand__sub">统编语文 · 地标示意</span>
+        </span>
+      </a>
+      <div class="map-filters" id="map-filters">
+        <label class="map-filter">
+          <span>学段</span>
+          <select id="filter-stage" aria-label="学段">
+            <option value="all">全部</option>
+            <option value="小学">小学</option>
+            <option value="初中">初中</option>
+          </select>
+        </label>
+        <label class="map-filter">
+          <span>朝代</span>
+          <select id="filter-dynasty" aria-label="朝代">
+            <option value="all">全部</option>
+          </select>
+        </label>
+        <label class="map-filter">
+          <span>类型</span>
+          <select id="filter-role" aria-label="地点类型">
+            <option value="scene">诗中地</option>
+            <option value="all">全部类型</option>
+            <option value="origin">相关出处</option>
+            <option value="writing">写作地</option>
+            <option value="mention">提及</option>
+            <option value="route">行程</option>
+          </select>
+        </label>
+      </div>
+      <div class="map-top__right">
+        <span class="map-count" id="panel-count"></span>
+        <a class="map-back" href="/">回课文</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="map-layout">
+    <div id="map" class="map-canvas" role="application" aria-label="古诗中国地图"></div>
+  </main>
+
+  <div class="map-modal is-hidden" id="map-modal" aria-hidden="true">
+    <div class="map-modal__backdrop" id="modal-backdrop"></div>
+    <div class="map-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="card-title">
+      <button type="button" class="map-modal__close" id="modal-close" aria-label="关闭">×</button>
+      <div class="map-modal__ornament" aria-hidden="true"></div>
+      <p class="map-modal__meta" id="card-meta"></p>
+      <h2 class="map-modal__title" id="card-title"></h2>
+      <p class="map-modal__author" id="card-author"></p>
+      <div class="map-modal__place" id="card-place"></div>
+      <div class="map-modal__list is-hidden" id="card-siblings"></div>
+      <div class="map-modal__body" id="card-body"></div>
+      <div class="map-modal__notes is-hidden" id="card-notes">
+        <span class="map-modal__notes-title">注释</span>
+        <div id="card-notes-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/map/map.js" defer></script>
+</body>
+</html>

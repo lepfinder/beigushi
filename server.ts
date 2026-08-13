@@ -7,6 +7,8 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3333;
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const CONTENT_DIR = path.join(process.cwd(), 'content');
+const DATA_DIR = path.join(process.cwd(), 'data');
+const POEMS_META_PATH = path.join(DATA_DIR, 'poems_meta.json');
 /** 百度统计站点 ID；设为空字符串可关闭 */
 const BAIDU_TONGJI_ID = process.env.BAIDU_TONGJI_ID ?? '8403095a5f32952c96ddac970e7cbe76';
 
@@ -71,6 +73,24 @@ function buildGradeNav(current: GradePage): string {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+  }
+  .site-grade-nav__actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .site-map-link {
+    color: #8b6914;
+    text-decoration: none;
+    font-family: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+    font-size: 0.88rem;
+    letter-spacing: 0.12em;
+    border-bottom: 1px solid transparent;
+    padding: 4px 0;
+  }
+  .site-map-link:hover {
+    border-bottom-color: #c4a35a;
   }
   .site-grade-nav .brand {
     display: flex;
@@ -264,19 +284,22 @@ function buildGradeNav(current: GradePage): string {
         <span class="brand-sub">统编语文 · 在线典藏</span>
       </span>
     </a>
-    <div class="grade-menu" id="grade-menu">
-      <button type="button" class="grade-menu__trigger" id="grade-menu-trigger" aria-haspopup="listbox" aria-expanded="false">
-        <span>${current.label}</span>
-        <svg class="grade-menu__chevron" viewBox="0 0 10 6" aria-hidden="true"><path fill="none" stroke="#8b6914" stroke-width="1.4" d="M1 1l4 4 4-4"/></svg>
-      </button>
-      <div class="grade-menu__panel" role="listbox" aria-label="选择年级">
-        <div class="grade-menu__group">
-          <div class="grade-menu__group-label">小学</div>
-          <div class="grade-menu__grid">${primaryItems}</div>
-        </div>
-        <div class="grade-menu__group">
-          <div class="grade-menu__group-label">初中</div>
-          <div class="grade-menu__grid">${juniorItems}</div>
+    <div class="site-grade-nav__actions">
+      <a class="site-map-link" href="/map">古诗地图</a>
+      <div class="grade-menu" id="grade-menu">
+        <button type="button" class="grade-menu__trigger" id="grade-menu-trigger" aria-haspopup="listbox" aria-expanded="false">
+          <span>${current.label}</span>
+          <svg class="grade-menu__chevron" viewBox="0 0 10 6" aria-hidden="true"><path fill="none" stroke="#8b6914" stroke-width="1.4" d="M1 1l4 4 4-4"/></svg>
+        </button>
+        <div class="grade-menu__panel" role="listbox" aria-label="选择年级">
+          <div class="grade-menu__group">
+            <div class="grade-menu__group-label">小学</div>
+            <div class="grade-menu__grid">${primaryItems}</div>
+          </div>
+          <div class="grade-menu__group">
+            <div class="grade-menu__group-label">初中</div>
+            <div class="grade-menu__grid">${juniorItems}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -395,9 +418,34 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
+app.get('/api/poems-meta', (_req, res) => {
+  if (!fs.existsSync(POEMS_META_PATH)) {
+    res.status(404).json({ error: 'poems_meta.json not found' });
+    return;
+  }
+  res
+    .type('json')
+    .set('Cache-Control', 'public, max-age=300')
+    .send(fs.readFileSync(POEMS_META_PATH, 'utf8'));
+});
+
+function sendMapPage(_req: express.Request, res: express.Response) {
+  const mapPath = path.join(PUBLIC_DIR, 'map', 'index.html');
+  if (!fs.existsSync(mapPath)) {
+    res.status(404).type('html').send(renderNotFound('古诗地图页面未找到。'));
+    return;
+  }
+  let html = fs.readFileSync(mapPath, 'utf8');
+  html = injectHeadSnippet(html, buildBaiduTongjiScript());
+  res.status(200).type('html').set('Cache-Control', 'public, max-age=60').send(html);
+}
+
+app.get(['/map', '/map/'], sendMapPage);
+
 // 公共静态资源（样式 / 脚本）
 app.use('/styles', express.static(path.join(PUBLIC_DIR, 'styles'), { maxAge: '1h' }));
 app.use('/js', express.static(path.join(PUBLIC_DIR, 'js'), { maxAge: '1h' }));
+app.use('/map', express.static(path.join(PUBLIC_DIR, 'map'), { maxAge: '5m', index: false, redirect: false }));
 
 app.get('/', (_req, res) => {
   res.redirect(302, `/${encodeURIComponent(DEFAULT_GRADE_SLUG)}`);
@@ -405,6 +453,10 @@ app.get('/', (_req, res) => {
 
 app.get('/:grade', (req, res, next) => {
   const slug = decodeURIComponent(req.params.grade);
+  if (slug === 'map' || slug === 'api') {
+    next();
+    return;
+  }
   const grade = findGradeBySlug(slug);
   if (!grade) {
     next();
